@@ -22,6 +22,7 @@ from datetime import datetime
 
 requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
+# Configuração do logger
 logging.basicConfig(
     level="INFO",
     format="%(message)s",
@@ -30,11 +31,10 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger("shellshock_tester")
-
 console = Console()
 
 def test_shellshock(url: str, progress: Progress, task_id: int) -> Tuple[str, Optional[bool], Optional[str]]:
-  
+    
     headers = {
         "User-Agent": "() { :; }; echo; echo; /bin/bash -c 'echo VULNERABLE'",
         "Accept": "*/*"
@@ -52,16 +52,7 @@ def test_shellshock(url: str, progress: Progress, task_id: int) -> Tuple[str, Op
         return url, None, str(e)
 
 def main(urls: List[str], threads: int) -> List[Tuple[str, Optional[bool], Optional[str]]]:
-    """
-    Main function to test multiple URLs for Shellshock vulnerability.
     
-    Args:
-        urls (List[str]): List of URLs to test.
-        threads (int): Number of threads to use.
-    
-    Returns:
-        List[Tuple[str, Optional[bool], Optional[str]]]: List of results for each URL.
-    """
     results = []
     total_urls = len(urls)
     
@@ -88,30 +79,20 @@ def main(urls: List[str], threads: int) -> List[Tuple[str, Optional[bool], Optio
     return results
 
 def display_results(results: List[Tuple[str, Optional[bool], Optional[str]]]) -> None:
-    """
-    Display results in a rich tree format.
     
-    Args:
-        results (List[Tuple[str, Optional[bool], Optional[str]]]): List of results for each URL.
-    """
-    tree = Tree("🌐 [bold]Shellshock Test Results")
-    
+    table = Table(title="🌐 Shellshock Test Results", show_header=True, header_style="bold magenta")
+    table.add_column("URL", style="cyan", no_wrap=True)
+    table.add_column("Status", style="green")
+    table.add_column("Details", style="yellow")
+
     for url, is_vulnerable, details in results:
-        if is_vulnerable is True:
-            status = "🔴 [bold red]Vulnerable[/bold red]"
-        elif is_vulnerable is False:
-            status = "🟢 [bold green]Not Vulnerable[/bold green]"
-        else:
-            status = "🟡 [bold yellow]Error[/bold yellow]"
-        
-        url_node = tree.add(f"[link={url}]{url}[/link]")
-        url_node.add(f"Status: {status}")
-        url_node.add(f"Details: {details}")
+        status = "Vulnerable" if is_vulnerable is True else "Not Vulnerable" if is_vulnerable is False else "Error"
+        table.add_row(url, status, details)
     
-    console.print(tree)
+    console.print(table)
 
 def save_results(results: List[Tuple[str, Optional[bool], Optional[str]]], filename: str) -> None:
-
+    
     results_dict = {
         url: {
             "status": "Vulnerable" if is_vulnerable else "Not Vulnerable" if is_vulnerable is False else "Error",
@@ -123,11 +104,12 @@ def save_results(results: List[Tuple[str, Optional[bool], Optional[str]]], filen
     console.print(f"[bold green]Results saved to {filename}[/bold green]")
 
 def load_urls_from_file(filename: str) -> List[str]:
-
+    
     with open(filename, "r") as f:
         return [line.strip() for line in f if line.strip()]
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
+    
     parser = argparse.ArgumentParser(description="Shellshock Vulnerability Tester")
     parser.add_argument("-u", "--urls", nargs="+", help="URLs to test")
     parser.add_argument("-f", "--file", help="File containing URLs to test")
@@ -136,7 +118,7 @@ def parse_arguments():
     return parser.parse_args()
 
 def show_config(urls: List[str], threads: int, output: Optional[str]) -> None:
-
+    
     config = {
         "URLs to test": len(urls),
         "Number of threads": threads,
@@ -149,7 +131,6 @@ def show_config(urls: List[str], threads: int, output: Optional[str]) -> None:
     ))
 
 def main_menu() -> Dict:
-
     choices = {}
     
     choices['urls'] = Prompt.ask("Enter URLs to test (separated by space) or path to file")
